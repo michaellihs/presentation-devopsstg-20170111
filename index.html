@@ -1,0 +1,283 @@
+	<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<title>BOSH :: Cloud Infrastructure as Code</title>
+
+		<link rel="stylesheet" href="css/reveal.css">
+		<link rel="stylesheet" href="css/theme/black.css">
+
+		<!-- Theme used for syntax highlighting of code -->
+		<link rel="stylesheet" href="lib/css/zenburn.css">
+
+		<!-- Printing and PDF exports -->
+		<script>
+			var link = document.createElement( 'link' );
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+			document.getElementsByTagName( 'head' )[0].appendChild( link );
+		</script>
+	</head>
+	<body>
+		<div class="reveal">
+			<div class="slides">
+				<section><h1>BOSH</h1><br><h2>Cloud Infrastructure as Code</h2></section>
+				<section data-markdown>
+				    <script type="text/template">
+					# Michael Lihs
+					
+					[lihsmi.ch](http://lihsmi.ch)<br>[@kaktusmimi](https://www.twitter.com/kaktusmimi)<br>
+					@boschglobal
+					</script>
+				</section>
+				<section data-markdown>
+				    <script type="text/template">
+				        ## Agenda
+
+				        - What is BOSH?
+				        - Components
+				        - Learning BOSH
+				    </script>
+				</section>
+				<section data-markdown>
+				    <script type="text/template">
+				        ## What is BOSH
+
+				        BOSH is an open source tool for
+				        <ol>
+				            <li>release engineering</li>
+				            <li>deployment</li>
+				            <li>lifecycle management</li>
+				            <li>monitoring</li>
+				        </ol>
+
+                        of distributed systems
+				    </script>
+				</section>
+				<section data-markdown>
+				    <script type="text/template">
+				        ## BOSH vs <br>"Classic Config Management"
+
+				        <ol>
+				            <li>Provides Software Packaging</li>
+				            <li>Manages Infrastructure (Compute, Networking, Storage)</li>
+				            <li>Allows multi-machine setups</li>
+				            <li>Monitors running Software</li>
+				            <li>Not intended to manage "bare metal"</li>
+				        </ol>
+
+				    </script>
+				</section>
+				<section data-markdown>
+				    <script type="text/template">
+				        #  BOSH Concepts
+				    </script>
+				</section>
+				<section data-markdown>
+				    <script type="text/template">
+				        ## Stemcell
+				        
+				        - versioned OS image wrapped with IaaS specific packaging
+				        - bare minimum OS skeleton with a few common utilities pre-installed
+				        - contains the BOSH agent
+				        - abstracts from underlying infrastructure
+				        - provided by the BOSH team
+				        - currently Ubuntu and Centos is supported
+				        - vSphere, AWS, OpenStack, and vCloud infrastructures
+				    </script>
+				</section>
+				<section data-markdown>
+				    <script type="text/template">
+				        ## Release
+				        
+				        - version collection of configuration properties, configuration templates, start up scripts, source code, binary artifacts
+				        - allows building and distributing software in a reproducible way
+				        - placed on top of a stemcell
+				        - can orchestrate software distribution across multiple machines (e.g. MySQL cluster)
+				        - releases can be versioned in a (Git) repository
+				        - releases can also handle updates of software in a cluster
+				    </script>
+				</section>
+				<section data-markdown>
+				    <script type="text/template">
+				        ## Deployment
+				        
+				        - collection of VMs, built from a Stemcell populated with specific release
+				        - resources are created by BOSH in the IaaS
+				        - describes which Stemcells to use and which Releases to be deployed on them
+				        - separates software (Releases) from data (persistent disks)
+				        - configuration is kept in a human-readable, versionable format (YAML), the *Deployment Manifest*
+				        - in a perfect world *Deployment Manifest* is IaaS agnostic
+				    </script>
+				</section>
+				<section data-markdown>
+					<script type="text/template">
+						## Contents of Deployment Manifest
+
+						- Required Stemcell(s)
+						- Required Release(s)
+						- Job Instances (e.g. MySql Cluster)
+						- Update Strategy
+					</script>
+				</section>
+				<section data-markdown>
+				    <script type="text/template">
+				        ## Deployment Manifest Example
+
+					    ---
+					    name: redis-us
+
+					    releases:
+					    - name: redis
+					      version: 15.9
+
+					    resource_pools:
+					    - name: all-machines
+					      stemcell:
+						    name: bosh-aws-xen-ubuntu-trusty-go_agent
+						    version: 2972
+						  network: default
+						  cloud_properties:
+							instance_type: m1.small
+							availability_zone: us-east-1a
+					</script>
+				</section>
+				<section data-markdown>
+					<script type="text/template">
+						# BOSH Components
+					</script>
+				</section>
+				<section data-markdown>
+					<script type="text/template">
+						## BOSH Director
+
+						- core orchestration component of BOSH
+						- controls creation of VMs
+						- controls lifecylce of software deployed by BOSH
+						- communicates with workers via *Task Queue*
+					</script>
+				</section>
+				<section data-markdown>
+					<script type="text/template">
+						## Cloud Provider Interface (CPI)
+
+						- API used by Director to interact with IaaS
+						- abstracts infrastructure differences
+						- available for AWS, vsphere, OpenStack, Warden
+					</script>
+				</section>
+				<section data-markdown>
+					<script type="text/template">
+						## Command Line Interface (CLI)
+
+						- primary operator interface for BOSH
+						- operator can interact with Director via CLI
+					</script>
+				</section>
+				<section data-markdown>
+					<script type="text/template">
+						## Agent
+
+						- deployed to every VM managed by BOSH
+						- listens for instructions from Director
+						- receives job specifications and uses them to assign job / role to a VM
+						- example: agent gets instructions how to install MySql on a VM
+					</script>
+				</section>
+				<section data-markdown>
+					<script type="text/template">
+						## Further Componenents
+
+						- *bosh-init* manage BOSH Director environment
+						- *NATS* pub-sub messaging for BOSH Director and BOSH Agent
+						- *Blobstore* stores sources and compiled images of releases
+						- *Registry* stores configuration of VMs
+						- *Database* information about desired state of a deployment
+						- *Health Monitor* monitors health of the VM using data from agents
+					</script>
+				</section>
+				<section data-markdown>
+					<script type="text/template">
+						# Learning BOSH
+					</script>
+				</section>
+				<section data-markdown>
+					<script type="text/template">
+						## BOSH Lite
+
+						- Vagrant Box for a lightweight BOSH environment
+						- Uses Warden Containers for VMs
+						- Enables local development of BOSH releases
+					</script>
+				</section>
+				<section data-markdown>
+					<script type="text/template">
+						## Set up BOSH Lite
+
+							gem install bosh_cli --no-ri --no-rdoc
+
+							git clone https://github.com/cloudfoundry/bosh-lite
+							cd bosh-lite
+							vagrant up
+							./bin/add-route
+
+							bosh target 192.168.50.4 lite
+							bosh login admin admin
+					</script>
+				</section>
+				<section data-markdown>
+					<script type="text/template">
+						## Learning BOSH Release
+
+						- Based on BOSH Lite
+						- Provides step-by-step tutorial for BOSH
+						- Sets up a simple Ruby app with BOSH
+					</script>
+				</section>
+				<section data-markdown>
+					<script type="text/template">
+						## Our Current Struggles
+
+						- Separating config and credentials in manifests
+						- (Continuously) testing manifests
+						- User permissions
+						- Providing BOSH as a Service in Cloud Foundry
+					</script>
+				</section>
+				<section data-markdown>
+					<script type="text/template">
+						## References
+
+						- [BOSH website](http://bosh.io)
+						- [BOSH Lite](https://github.com/cloudfoundry/bosh-lite)
+						- [Learning BOSH Release](https://mariash.github.io/learn-bosh/)
+						- [Stark & Wayne Blog](https://mariash.github.io/learn-bosh/)
+						- [BOSH Slack Channel](https://slack.cloudfoundry.org/)
+
+				    </script>
+				</section>
+			</div>
+		</div>
+
+		<script src="lib/js/head.min.js"></script>
+		<script src="js/reveal.js"></script>
+
+		<script>
+			// More info https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				history: true,
+
+				// More info https://github.com/hakimel/reveal.js#dependencies
+				dependencies: [
+					{ src: 'plugin/markdown/marked.js' },
+					{ src: 'plugin/markdown/markdown.js' },
+					{ src: 'plugin/notes/notes.js', async: true },
+					{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } }
+				]
+			});
+		</script>
+	</body>
+</html>
